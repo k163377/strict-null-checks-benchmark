@@ -14,6 +14,7 @@ repositories {
 }
 
 dependencies {
+    jmhImplementation(kotlin("reflect"))
     jmhImplementation("com.fasterxml.jackson.core:jackson-databind:2.19.0-SNAPSHOT")
     jmhImplementation(files("./jars/jackson-module-kotlin-2.19.0-f8921c.jar"))
     testImplementation(kotlin("test"))
