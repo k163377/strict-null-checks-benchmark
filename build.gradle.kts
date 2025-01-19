@@ -13,23 +13,65 @@ repositories {
     }
 }
 
+val isAfter = true
+
 dependencies {
     jmhImplementation(kotlin("reflect"))
     jmhImplementation("com.fasterxml.jackson.core:jackson-databind:2.19.0-SNAPSHOT")
 
-    // before
-    // jmhImplementation(files("./jars/jackson-module-kotlin-2.19.0-f8921c.jar"))
-    // after
-    jmhImplementation(files("./jars/jackson-module-kotlin-2.19.0-fb7352.jar"))
+    if (isAfter) {
+        jmhImplementation(files("./jars/jackson-module-kotlin-2.19.0-aa167f.jar"))
+    } else {
+        jmhImplementation(files("./jars/jackson-module-kotlin-2.19.0-4ecdac.jar"))
+    }
 
     testImplementation(kotlin("test"))
 }
+
+val generatedSrcPath = "${layout.buildDirectory.get()}/generated/kotlin"
 
 tasks.test {
     useJUnitPlatform()
 }
 kotlin {
+    // for withCheckMapper
+    sourceSets["jmh"].apply {
+        kotlin.srcDir(generatedSrcPath)
+    }
     jvmToolchain(8)
+}
+
+tasks {
+    val generateWithCheckMapper by registering(Copy::class) {
+        val packageStr = "org.wrongwrong"
+        val strictNullChecksStr = if (isAfter) {
+            "NewStrictNullChecks"
+        } else {
+            "StrictNullChecks"
+        }
+
+        from(
+            resources.text.fromString(
+                """
+package $packageStr
+
+import com.fasterxml.jackson.module.kotlin.KotlinFeature
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
+val withCheckMapper = jacksonObjectMapper { enable(KotlinFeature.${strictNullChecksStr}) }
+
+                """.trimIndent()
+            )
+        ) {
+            rename { "generatedCommon.kt" }
+        }
+
+        into(file("$generatedSrcPath/${packageStr.replace(".", "/")}"))
+    }
+
+    compileKotlin {
+        dependsOn.add(generateWithCheckMapper)
+    }
 }
 
 jmh {
